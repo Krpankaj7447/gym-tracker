@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const api = axios.create({ baseURL: "https://gym-tracker-y7no.onrender.com/api" });
+const api = axios.create({ baseURL: "https://gym-tracker-backend-7se4.onrender.com" });
 
 // Attach token to every request
 api.interceptors.request.use((config) => {
