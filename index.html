@@ -1433,7 +1433,7 @@ function renderHistory(){
        const k=e.name;
        if(!seen.has(k)){seen.add(k);uniqueExercises.push(e)}
      });
-     return `<details class="history-day" ${i===0?'open':''}>
+     return `<details class="history-day">
        <summary>
          <div>
            <div class="history-day-title">${esc(f.day)}</div>
