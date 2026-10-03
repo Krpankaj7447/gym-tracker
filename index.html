@@ -274,10 +274,40 @@ body.dark .pr-board-summary{color:#a7f3d0}
 .pr-board-card[open] .history-chevron{transform:rotate(180deg)}
 .pr-board-content{border-top:1px solid #d1fae5;margin-top:10px;padding-top:10px}
 body.dark .pr-board-content{border-color:#134e3f}
-.pr-row{display:flex;justify-content:space-between;align-items:center;background:#fff;padding:7px 10px;border-radius:8px;border:1px solid #e2e8f0;font-size:12.5px}
-body.dark .pr-row{background:#061a14;border-color:#134e3f;color:#ecfdf5}
-.pr-score-badge{background:#ecfdf5;color:#065f46;border:1px solid #a7f3d0;padding:2px 7px;border-radius:6px;font-weight:700;font-size:11.5px}
+
+.pr-filter-strip{display:flex;gap:6px;overflow-x:auto;padding-bottom:8px;margin-bottom:10px;scrollbar-width:none}
+.pr-filter-strip::-webkit-scrollbar{display:none}
+.pr-chip{flex:0 0 auto;background:#fff;border:1px solid #cbd5e1;color:#334155;border-radius:16px;padding:4px 11px;font-size:11.5px;font-weight:700;cursor:pointer;transition:all .15s}
+.pr-chip.active{background:#059669;color:#fff;border-color:#059669}
+body.dark .pr-chip{background:#0b261e;border-color:#134e3f;color:#94a3b8}
+body.dark .pr-chip.active{background:#059669;color:#fff;border-color:#059669}
+
+.pr-item-card{background:#fff;border:1px solid #e2e8f0;border-radius:10px;margin-bottom:7px;overflow:hidden}
+body.dark .pr-item-card{background:#0b261e;border-color:#134e3f}
+.pr-item-header{display:flex;justify-content:space-between;align-items:center;padding:9px 11px;cursor:pointer;gap:8px}
+.pr-item-title-box{display:flex;flex-direction:column;gap:2px}
+.pr-item-title{font-weight:700;font-size:13px;color:#1e293b}
+body.dark .pr-item-title{color:#ecfdf5}
+.pr-item-date{font-size:11px;color:#64748b}
+body.dark .pr-item-date{color:#94a3b8}
+.pr-item-right{display:flex;align-items:center;gap:6px}
+.pr-score-badge{background:#ecfdf5;color:#065f46;border:1px solid #a7f3d0;padding:3px 8px;border-radius:6px;font-weight:750;font-size:12px;white-space:nowrap}
 body.dark .pr-score-badge{background:#064e3b;color:#a7f3d0;border-color:#059669}
+.pr-delete-btn{background:transparent;border:0;cursor:pointer;font-size:14px;padding:4px;border-radius:6px;transition:opacity .15s}
+.pr-delete-btn:hover{background:#fee2e2}
+.pr-expand-arrow{font-size:14px;color:#94a3b8;transition:transform .15s}
+.pr-timeline{background:#f8fafc;border-top:1px solid #f1f5f9;padding:9px 12px;font-size:12px}
+body.dark .pr-timeline{background:#061a14;border-color:#134e3f}
+.pr-timeline-head{font-size:11px;font-weight:800;color:#059669;margin-bottom:6px;letter-spacing:.3px;text-transform:uppercase}
+body.dark .pr-timeline-head{color:#34d399}
+.pr-step{display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:1px dashed #e2e8f0;font-size:12px}
+body.dark .pr-step{border-color:#134e3f}
+.pr-step:last-child{border-bottom:0}
+.pr-step-date{color:#64748b}
+body.dark .pr-step-date{color:#94a3b8}
+.pr-step-metric{font-weight:600}
+.pr-empty-box{text-align:center;padding:18px 12px;background:#f8fafc;border-radius:10px;border:1px dashed #cbd5e1;color:#64748b;margin:6px 0}
+body.dark .pr-empty-box{background:#07271e;border-color:#134e3f;color:#94a3b8}
 .suggest-hint-row{font-size:11px;color:#059669;margin-top:2px;grid-column:2/4;line-height:1.2}
 body.dark .suggest-hint-row{color:#34d399}
 
@@ -1638,62 +1668,305 @@ function isHistoricalBest(name, weight, reps) {
   return Math.abs(curOneRM - best.oneRM) < 0.05;
 }
 
-function renderPRBoard() {
-  const container = document.getElementById('prBoardSection');
-  if (!container) return;
+let prFilterMuscle = 'ALL';
 
+function setPRFilter(m) {
+  prFilterMuscle = m;
+  renderPRBoard();
+}
+
+function formatPRDate(dateKey) {
+  if (!dateKey) return '';
+  let d;
+  if (typeof dateKey === 'string' && dateKey.includes('T')) {
+    d = new Date(dateKey);
+  } else {
+    d = new Date(dateKey + 'T12:00:00');
+  }
+  if (isNaN(d.getTime())) return String(dateKey);
+  return d.toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
+}
+
+function togglePRTimeline(cleanId) {
+  const el = document.getElementById('timeline-' + cleanId);
+  const arrow = document.getElementById('arrow-' + cleanId);
+  if (!el) return;
+  const isHidden = el.classList.toggle('hidden');
+  if (arrow) arrow.style.transform = isHidden ? 'rotate(0deg)' : 'rotate(180deg)';
+}
+
+function getExerciseProgressionHistory(name) {
+  const sessions = [];
+  const sorted = [...(data.history || [])].sort((a, b) => {
+    const da = a.dateKey || (a.date ? localDateKey(new Date(a.date)) : '');
+    const db = b.dateKey || (b.date ? localDateKey(new Date(b.date)) : '');
+    return da.localeCompare(db);
+  });
+
+  sorted.forEach(w => {
+    (w.exercises || []).forEach(e => {
+      if (e.name === name) {
+        let dayBest = null;
+        (e.sets || []).forEach(s => {
+          const wt = parseFloat(s.weight);
+          const rp = parseInt(s.reps);
+          if (!isNaN(wt) && !isNaN(rp) && wt > 0 && rp > 0) {
+            const oneRM = wt * (1 + rp / 30);
+            if (!dayBest || oneRM > dayBest.oneRM) {
+              dayBest = { weight: wt, reps: rp, oneRM };
+            }
+          }
+        });
+        if (dayBest) {
+          const dKey = w.dateKey || (w.date ? localDateKey(new Date(w.date)) : '');
+          sessions.push({ dateKey: dKey, ...dayBest });
+        }
+      }
+    });
+  });
+  return sessions;
+}
+
+function deleteExercisePR(name) {
+  if (!confirm(`Are you sure you want to delete PR for "${name}"?\nThis will remove this peak record from your history and recalculate your PR.`)) return;
+
+  const best = getExerciseAllTimeBest(name);
+  if (!best) return;
+
+  for (let i = 0; i < data.history.length; i++) {
+    const w = data.history[i];
+    for (let j = 0; j < (w.exercises || []).length; j++) {
+      const ex = w.exercises[j];
+      if (ex.name === name) {
+        for (let k = 0; k < (ex.sets || []).length; k++) {
+          const s = ex.sets[k];
+          const wt = parseFloat(s.weight);
+          const rp = parseInt(s.reps);
+          if (!isNaN(wt) && !isNaN(rp) && wt > 0 && rp > 0) {
+            const oneRM = wt * (1 + rp / 30);
+            if (Math.abs(oneRM - best.oneRM) < 0.05) {
+              ex.sets.splice(k, 1);
+              if (ex.sets.length === 0) {
+                w.exercises.splice(j, 1);
+              }
+              persist();
+              renderPRBoard();
+              renderHistory();
+              renderCurrent();
+              alert(`PR record for "${name}" deleted ✓`);
+              return;
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+function getAllPRsGrouped() {
+  const muscleList = [...(data.muscles || ['Chest','Back','Shoulders','Biceps','Triceps','Legs','Abs'])];
   const prsByMuscle = {};
-  data.muscles.forEach(m => {
-    (data.exercises[m] || []).forEach(exName => {
-      const best = getExerciseAllTimeBest(exName);
-      if (best) {
-        if (!prsByMuscle[m]) prsByMuscle[m] = [];
-        prsByMuscle[m].push({ name: exName, ...best });
+  muscleList.forEach(m => { prsByMuscle[m] = []; });
+
+  // Map each exercise to its muscle
+  const exerciseMuscleMap = {};
+  muscleList.forEach(m => {
+    (data.exercises[m] || []).forEach(name => {
+      exerciseMuscleMap[name] = m;
+    });
+  });
+
+  const allExercises = new Set();
+
+  // Scan all history entries to capture every exercise ever performed
+  (data.history || []).forEach(w => {
+    (w.exercises || []).forEach(e => {
+      if (e.name) {
+        allExercises.add(e.name);
+        if (!exerciseMuscleMap[e.name]) {
+          if (e.muscle && (muscleList.includes(e.muscle) || e.muscle === 'Other')) {
+            exerciseMuscleMap[e.name] = e.muscle;
+          } else if (w.muscles && w.muscles.length === 1 && muscleList.includes(w.muscles[0])) {
+            exerciseMuscleMap[e.name] = w.muscles[0];
+          }
+        }
       }
     });
   });
 
-  const muscleKeys = Object.keys(prsByMuscle);
-  if (!muscleKeys.length) {
-    container.innerHTML = `
-      <details class="pr-board-card">
-        <summary class="pr-board-summary">
-          <div style="display:flex;align-items:center;gap:7px">
-            <span>🏆</span><b>Personal Records (PR Board)</b>
-          </div>
-          <span class="history-chevron">⌄</span>
-        </summary>
-        <div class="pr-board-content">
-          <div class="muted" style="font-size:12.5px;padding:4px 0">No records yet. Complete your workouts to log PRs!</div>
-        </div>
-      </details>
-    `;
-    return;
+  // Also include configured exercises from data.exercises
+  muscleList.forEach(m => {
+    (data.exercises[m] || []).forEach(name => {
+      allExercises.add(name);
+    });
+  });
+
+  // For every unique exercise, find its all-time best
+  allExercises.forEach(name => {
+    const best = getExerciseAllTimeBest(name);
+    if (best) {
+      let targetMuscle = exerciseMuscleMap[name];
+      if (!targetMuscle) {
+        for (const m of muscleList) {
+          if ((data.exercises[m] || []).includes(name)) {
+            targetMuscle = m;
+            break;
+          }
+        }
+      }
+      if (!targetMuscle) targetMuscle = 'Other';
+
+      if (!prsByMuscle[targetMuscle]) {
+        prsByMuscle[targetMuscle] = [];
+      }
+      prsByMuscle[targetMuscle].push({
+        name,
+        muscle: targetMuscle,
+        ...best
+      });
+    }
+  });
+
+  // Sort exercises inside each muscle by most recent date then name
+  Object.keys(prsByMuscle).forEach(m => {
+    prsByMuscle[m].sort((a, b) => {
+      const da = a.dateKey || '';
+      const db = b.dateKey || '';
+      return db.localeCompare(da) || a.name.localeCompare(b.name);
+    });
+  });
+
+  // If there are exercises in 'Other' and 'Other' isn't in muscleList, add it to tabs
+  if (prsByMuscle['Other'] && prsByMuscle['Other'].length > 0 && !muscleList.includes('Other')) {
+    muscleList.push('Other');
   }
 
+  let totalCount = 0;
+  Object.values(prsByMuscle).forEach(arr => { totalCount += arr.length; });
+
+  return { muscleList, prsByMuscle, totalCount };
+}
+
+function renderPRCardItem(pr) {
+  const cleanId = pr.name.replace(/[^a-zA-Z0-9]/g, '_');
+  const historySteps = getExerciseProgressionHistory(pr.name);
+  const bestRM = pr.oneRM;
+
+  return `
+    <div class="pr-item-card">
+      <div class="pr-item-header" onclick="togglePRTimeline('${cleanId}')">
+        <div class="pr-item-title-box">
+          <span class="pr-item-title">${esc(pr.name)}</span>
+          <span class="pr-item-date">📅 ${formatPRDate(pr.dateKey)}</span>
+        </div>
+        <div class="pr-item-right">
+          <span class="pr-score-badge">👑 ${pr.weight} kg × ${pr.reps}</span>
+          <button type="button" class="pr-delete-btn" onclick="event.stopPropagation(); deleteExercisePR('${esc(pr.name)}')" title="Delete this PR">🗑️</button>
+          <span class="pr-expand-arrow" id="arrow-${cleanId}">⌄</span>
+        </div>
+      </div>
+      <div class="pr-timeline hidden" id="timeline-${cleanId}">
+        <div class="pr-timeline-head">📈 Growth Timeline (${historySteps.length} Session${historySteps.length === 1 ? '' : 's'})</div>
+        ${historySteps.length ? [...historySteps].reverse().map((step) => {
+          const isPeak = Math.abs(step.oneRM - bestRM) < 0.05;
+          return `
+            <div class="pr-step">
+              <span class="pr-step-date">📅 ${formatPRDate(step.dateKey)}</span>
+              <span class="pr-step-metric"><b>${step.weight} kg</b> × ${step.reps} reps ${isPeak ? '<span class="set-pr-tag">👑 Peak</span>' : ''}</span>
+            </div>
+          `;
+        }).join('') : '<div class="muted">Single session record</div>'}
+      </div>
+    </div>
+  `;
+}
+
+function renderPRContent(filter, displayMuscles, prsByMuscle, totalCount) {
+  if (filter === 'ALL') {
+    if (totalCount === 0) {
+      return `
+        <div class="pr-empty-box">
+          <div style="font-size:26px;margin-bottom:6px">🏆</div>
+          <div style="font-weight:700;font-size:13.5px;color:#064e3b">No Personal Records Yet</div>
+          <div style="font-size:12px;color:#047857;margin-top:3px">Complete workouts and log sets to automatically track your all-time PRs here.</div>
+        </div>
+      `;
+    }
+
+    return displayMuscles.map(m => `
+      <div style="margin-bottom:12px">
+        <div style="font-weight:750;font-size:11.5px;color:#065f46;margin:6px 0 6px;letter-spacing:0.4px;text-transform:uppercase">
+          ${esc(m)} (${(prsByMuscle[m] || []).length})
+        </div>
+        <div style="display:grid;gap:6px">
+          ${(prsByMuscle[m] || []).map(pr => renderPRCardItem(pr)).join('')}
+        </div>
+      </div>
+    `).join('');
+  }
+
+  // A specific muscle is selected
+  const musclePRs = prsByMuscle[filter] || [];
+  if (musclePRs.length === 0) {
+    return `
+      <div class="pr-empty-box">
+        <div style="font-size:26px;margin-bottom:6px">🏋️</div>
+        <div style="font-weight:700;font-size:13.5px;color:#064e3b">No PRs for ${esc(filter)} Yet</div>
+        <div style="font-size:12px;color:#047857;margin-top:3px">Log exercises under ${esc(filter)} to see your personal records and progression.</div>
+      </div>
+    `;
+  }
+
+  return `
+    <div style="display:grid;gap:6px;margin-top:4px">
+      ${musclePRs.map(pr => renderPRCardItem(pr)).join('')}
+    </div>
+  `;
+}
+
+function renderPRBoard() {
+  const container = document.getElementById('prBoardSection');
+  if (!container) return;
+
+  const existingDetails = container.querySelector('.pr-board-card');
+  const wasOpen = existingDetails ? existingDetails.hasAttribute('open') : true;
+
+  const { muscleList, prsByMuscle, totalCount } = getAllPRsGrouped();
+
+  if (prFilterMuscle !== 'ALL' && !muscleList.includes(prFilterMuscle)) {
+    prFilterMuscle = 'ALL';
+  }
+
+  const displayMuscles = (prFilterMuscle === 'ALL')
+    ? muscleList.filter(m => (prsByMuscle[m] || []).length > 0)
+    : [prFilterMuscle];
+
   container.innerHTML = `
-    <details class="pr-board-card">
+    <details class="pr-board-card" ${wasOpen ? 'open' : ''}>
       <summary class="pr-board-summary">
         <div style="display:flex;align-items:center;gap:7px">
-          <span>🏆</span><b>Personal Records (PR Board)</b>
-          <span style="font-size:11px;background:#d1fae5;color:#047857;padding:2px 7px;border-radius:10px">${muscleKeys.length} categories</span>
+          <span>🏆</span><b>Personal Records (${totalCount})</b>
         </div>
         <span class="history-chevron">⌄</span>
       </summary>
       <div class="pr-board-content">
-        ${muscleKeys.map(m => `
-          <div style="margin-bottom:12px">
-            <div style="font-weight:750;font-size:12px;color:#064e3b;margin-bottom:5px;letter-spacing:0.3px">${esc(m).toUpperCase()}</div>
-            <div style="display:grid;gap:5px">
-              ${prsByMuscle[m].map(pr => `
-                <div class="pr-row">
-                  <span style="font-weight:600">${esc(pr.name)}</span>
-                  <span class="pr-score-badge">👑 ${pr.weight} kg × ${pr.reps} reps</span>
-                </div>
-              `).join('')}
-            </div>
-          </div>
-        `).join('')}
+        <!-- Persistent Muscle Filter Strip: ALL buttons are always visible -->
+        <div class="pr-filter-strip">
+          <button type="button" class="pr-chip ${prFilterMuscle === 'ALL' ? 'active' : ''}" onclick="setPRFilter('ALL')">
+            All (${totalCount})
+          </button>
+          ${muscleList.map(m => {
+            const count = (prsByMuscle[m] || []).length;
+            return `
+              <button type="button" class="pr-chip ${prFilterMuscle === m ? 'active' : ''}" onclick="setPRFilter('${esc(m)}')">
+                ${esc(m)} (${count})
+              </button>
+            `;
+          }).join('')}
+        </div>
+
+        <!-- PR Content Area -->
+        ${renderPRContent(prFilterMuscle, displayMuscles, prsByMuscle, totalCount)}
       </div>
     </details>
   `;
