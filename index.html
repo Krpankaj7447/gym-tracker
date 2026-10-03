@@ -257,6 +257,30 @@ body.dark .timer-sound-btn{background:#134e3f;color:#a7f3d0}
 .timer-sound-btn.on{background:#d1fae5;color:#047857}
 body.dark .timer-sound-btn.on{background:#064e3b;color:#6ee7b7}
 
+.pr-badge-pill{display:inline-flex;align-items:center;gap:3px;background:#fef3c7;color:#92400e;border:1px solid #fcd34d;padding:2px 7px;border-radius:10px;font-size:11px;font-weight:750;margin-left:6px;vertical-align:middle}
+body.dark .pr-badge-pill{background:#78350f;color:#fde68a;border-color:#b45309}
+.set-pr-tag{display:inline-block;color:#b45309;font-size:10px;font-weight:800;background:#fef3c7;border:1px solid #fcd34d;border-radius:4px;padding:1px 3px;margin-left:2px}
+body.dark .set-pr-tag{background:#78350f;color:#fde68a;border-color:#b45309}
+.exercise-toolbar{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:6px 0 9px}
+.btn-copy-last{background:#ecfdf5;border:1px solid #a7f3d0;color:#047857;font-size:11.5px;font-weight:700;padding:4px 9px;border-radius:8px;cursor:pointer}
+body.dark .btn-copy-last{background:#064e3b;border-color:#059669;color:#a7f3d0}
+.equipment-tag{font-size:11px;color:#065f46;background:#e8f7ee;border:1px solid #a7f3d0;padding:3px 7px;border-radius:6px;font-weight:650}
+body.dark .equipment-tag{background:#06261d;color:#6ee7b7;border-color:#134e3f}
+.pr-board-card{border:1px solid #a7f3d0;background:#f0fdf4;border-radius:14px;padding:12px 14px;margin-bottom:14px}
+body.dark .pr-board-card{background:#07271e;border-color:#134e3f}
+.pr-board-summary{list-style:none;display:flex;justify-content:space-between;align-items:center;cursor:pointer;font-size:14px;color:#064e3b;font-weight:750}
+body.dark .pr-board-summary{color:#a7f3d0}
+.pr-board-summary::-webkit-details-marker{display:none}
+.pr-board-card[open] .history-chevron{transform:rotate(180deg)}
+.pr-board-content{border-top:1px solid #d1fae5;margin-top:10px;padding-top:10px}
+body.dark .pr-board-content{border-color:#134e3f}
+.pr-row{display:flex;justify-content:space-between;align-items:center;background:#fff;padding:7px 10px;border-radius:8px;border:1px solid #e2e8f0;font-size:12.5px}
+body.dark .pr-row{background:#061a14;border-color:#134e3f;color:#ecfdf5}
+.pr-score-badge{background:#ecfdf5;color:#065f46;border:1px solid #a7f3d0;padding:2px 7px;border-radius:6px;font-weight:700;font-size:11.5px}
+body.dark .pr-score-badge{background:#064e3b;color:#a7f3d0;border-color:#059669}
+.suggest-hint-row{font-size:11px;color:#059669;margin-top:2px;grid-column:2/4;line-height:1.2}
+body.dark .suggest-hint-row{color:#34d399}
+
 .timer-digits.blink-red{
   color:#ef4444 !important;
   animation:timerRedBlink .5s infinite alternate ease-in-out;
@@ -541,6 +565,7 @@ body.dark .timer-adj-btn{background:#134e3f;border-color:#134e3f;color:#ecfdf5}
     <div id="historyAttStatsRow"></div>
   </div>
 </div>
+<div id="prBoardSection"></div>
 <div class="card"><h2>Workout History</h2><div id="historySummary" class="muted" style="margin-bottom:8px"></div><div id="history"></div></div>
 </section>
 
@@ -1309,6 +1334,103 @@ function lastFor(ex){
  return null;
 }
 
+function getExerciseIncrement(name) {
+  const lower = (name || '').toLowerCase();
+  if (lower.includes('machine') || lower.includes('pec deck') || lower.includes('cable') || 
+      lower.includes('lat pulldown') || lower.includes('seated') || lower.includes('extension') || 
+      lower.includes('press machine') || lower.includes('leg press') || lower.includes('leg curl') || 
+      lower.includes('smith')) {
+    return 5;
+  }
+  return 2.5;
+}
+
+function getExerciseTypeLabel(name) {
+  const inc = getExerciseIncrement(name);
+  return inc === 5 ? 'Machine Stack' : 'Free Weight';
+}
+
+function getExerciseAllTimeBest(name) {
+  let best = null;
+  (data.history || []).forEach(w => {
+    (w.exercises || []).forEach(e => {
+      if (e.name === name) {
+        (e.sets || []).forEach(s => {
+          const wt = parseFloat(s.weight);
+          const rp = parseInt(s.reps);
+          if (!isNaN(wt) && !isNaN(rp) && wt > 0 && rp > 0) {
+            const oneRM = wt * (1 + rp / 30);
+            if (!best || oneRM > best.oneRM) {
+              best = { weight: wt, reps: rp, oneRM, dateKey: w.dateKey || localDateKey(new Date(w.date)) };
+            }
+          }
+        });
+      }
+    });
+  });
+  return best;
+}
+
+function checkIsSetPR(name, weight, reps) {
+  const wt = parseFloat(weight);
+  const rp = parseInt(reps);
+  if (isNaN(wt) || isNaN(rp) || wt <= 0 || rp <= 0) return false;
+  const best = getExerciseAllTimeBest(name);
+  if (!best) return true; // First time logging = baseline PR
+  const curOneRM = wt * (1 + rp / 30);
+  return curOneRM > (best.oneRM + 0.1);
+}
+
+function fillSameAsLast(ei) {
+  const ex = current[ei];
+  const p = lastFor(ex.name);
+  if (!p || !p.sets || !p.sets.length) return;
+  ex.sets = p.sets.map(s => ({ weight: s.weight || '', reps: s.reps || '' }));
+  renderCurrent();
+}
+
+function autoProgressionTrigger(ei, si) {
+  const currentSet = current[ei].sets[si];
+  const nextSet = current[ei].sets[si + 1];
+  if (!nextSet) return;
+
+  const w = parseFloat(currentSet.weight);
+  const r = parseInt(currentSet.reps);
+  if (isNaN(w) || isNaN(r) || w <= 0 || r <= 0) return;
+
+  if (nextSet.weight === '' || nextSet._isAutoSuggested) {
+    const inc = getExerciseIncrement(current[ei].name);
+    let nextW = w;
+    let nextR = r;
+
+    if (r >= 12) {
+      nextW = w + inc;
+      nextR = 10;
+    } else if (r >= 10) {
+      nextW = w;
+      nextR = r;
+    } else {
+      nextW = w;
+      nextR = r;
+    }
+
+    nextSet.weight = String(nextW);
+    nextSet.reps = String(nextR);
+    nextSet._isAutoSuggested = true;
+
+    const nextWInput = document.getElementById(`weight-${ei}-${si + 1}`);
+    const nextRInput = document.getElementById(`reps-${ei}-${si + 1}`);
+    const nextHint = document.getElementById(`suggest-hint-${ei}-${si + 1}`);
+    if (nextWInput) nextWInput.value = nextW;
+    if (nextRInput) nextRInput.value = nextR;
+    if (nextHint) {
+      nextHint.innerHTML = (r >= 12)
+        ? `⚡ <b style="color:#059669">+${inc} kg</b> auto-suggested (12 reps hit!)`
+        : `⚡ Same weight suggested (Recovery & form)`;
+    }
+  }
+}
+
 function updateEditingBanner(){
   const banner = document.getElementById('editBanner');
   const bannerText = document.getElementById('editBannerText');
@@ -1365,19 +1487,70 @@ function progressHint(p){
 }
 
  function renderCurrent(){
- document.getElementById('exerciseCount').textContent=current.length+' exercise'+(current.length===1?'':'s');
- const box=document.getElementById('workoutExercises');
- if(!current.length){box.innerHTML='';return}
- box.innerHTML=current.map((ex,ei)=>{
-  let p=lastFor(ex.name), prev=p?`Last: ${p.sets.filter(s=>s.weight||s.reps).map(s=>(s.weight||'—')+' kg × '+(s.reps||'—')).join('  |  ')}`:'No previous record';
-  let hint=p?progressHint(p):'Start by recording your working sets.';
-  return `<div class="exercise" data-exercise-name="${esc(ex.name)}"><div class="exercise-head"><div><h3>${esc(ex.name)}</h3><div class="prev"><b>${esc(prev)}</b></div></div><button class="remove small" onclick="removeExercise(${ei})">✕</button></div>
-  <div class="hint">${esc(hint)}</div><div style="height:8px"></div><div class="sets"><b>Set</b><b>Weight (kg)</b><b>Reps</b><span></span>
-  ${ex.sets.map((s,si)=>`<div class="setrow"><b>${si+1}</b><input inputmode="decimal" value="${esc(s.weight)}" placeholder="e.g. 60" oninput="upd(${ei},${si},'weight',this.value)"><input inputmode="numeric" value="${esc(s.reps)}" placeholder="e.g. 8" oninput="upd(${ei},${si},'reps',this.value)"><button class="remove" onclick="removeSet(${ei},${si})">−</button></div>`).join('')}</div>
-  <button class="secondary small" style="margin-top:8px" onclick="addSet(${ei})">+ Set</button></div>`
- }).join('');
+  document.getElementById('exerciseCount').textContent=current.length+' exercise'+(current.length===1?'':'s');
+  const box=document.getElementById('workoutExercises');
+  if(!current.length){box.innerHTML='';return}
+  box.innerHTML=current.map((ex,ei)=>{
+   let p=lastFor(ex.name);
+   let prev=p?`Last: ${p.sets.filter(s=>s.weight||s.reps).map(s=>(s.weight||'—')+' kg × '+(s.reps||'—')).join('  |  ')}`:'No previous record';
+   let hint=p?progressHint(p):'Start by recording your working sets.';
+   let best=getExerciseAllTimeBest(ex.name);
+   let inc=getExerciseIncrement(ex.name);
+   let typeLabel=getExerciseTypeLabel(ex.name);
+
+   return `<div class="exercise" data-exercise-name="${esc(ex.name)}">
+    <div class="exercise-head">
+      <div>
+        <h3>${esc(ex.name)}</h3>
+        <div class="prev">
+          <b>${esc(prev)}</b>
+          ${best ? `<span class="pr-badge-pill">👑 All-Time PR: ${best.weight} kg × ${best.reps}</span>` : ''}
+        </div>
+      </div>
+      <button class="remove small" onclick="removeExercise(${ei})">✕</button>
+    </div>
+
+    <div class="exercise-toolbar">
+      <span class="equipment-tag">Step: <b>+${inc} kg</b> (${typeLabel})</span>
+      ${p ? `<button type="button" class="btn-copy-last" onclick="fillSameAsLast(${ei})">⚡ Same as Last</button>` : ''}
+    </div>
+
+    <div class="hint">${esc(hint)}</div>
+    <div style="height:6px"></div>
+    <div class="sets">
+      <b>Set</b><b>Weight (kg)</b><b>Reps</b><span></span>
+      ${ex.sets.map((s,si)=>{
+        const isPR = checkIsSetPR(ex.name, s.weight, s.reps);
+        return `<div class="setrow">
+          <b>${si+1} <span id="pr-tag-${ei}-${si}">${isPR ? '<span class="set-pr-tag">🏆 PR</span>' : ''}</span></b>
+          <input id="weight-${ei}-${si}" inputmode="decimal" value="${esc(s.weight)}" placeholder="e.g. 60" oninput="upd(${ei},${si},'weight',this.value)">
+          <input id="reps-${ei}-${si}" inputmode="numeric" value="${esc(s.reps)}" placeholder="e.g. 8" oninput="upd(${ei},${si},'reps',this.value)">
+          <button class="remove" onclick="removeSet(${ei},${si})">−</button>
+        </div>
+        <div class="suggest-hint-row" id="suggest-hint-${ei}-${si}"></div>`;
+      }).join('')}
+    </div>
+    <button class="secondary small" style="margin-top:8px" onclick="addSet(${ei})">+ Set</button>
+   </div>`;
+  }).join('');
+ }
+function upd(ei,si,k,v){
+  current[ei].sets[si][k]=v;
+  current[ei].sets[si]._isAutoSuggested=false;
+
+  const curSet=current[ei].sets[si];
+  const prTagEl=document.getElementById(`pr-tag-${ei}-${si}`);
+  if(prTagEl){
+    const isPR=checkIsSetPR(current[ei].name, curSet.weight, curSet.reps);
+    prTagEl.innerHTML=isPR ? '<span class="set-pr-tag">🏆 PR</span>' : '';
+  }
+
+  const w=parseFloat(curSet.weight);
+  const r=parseInt(curSet.reps);
+  if(!isNaN(w) && !isNaN(r) && w>0 && r>0){
+    autoProgressionTrigger(ei,si);
+  }
 }
-function upd(ei,si,k,v){current[ei].sets[si][k]=v}
 function addSet(i){current[i].sets.push({weight:'',reps:''});renderCurrent()}
 function removeSet(i,s){if(current[i].sets.length>1)current[i].sets.splice(s,1);renderCurrent()}
 function removeExercise(i){current.splice(i,1);renderCurrent()}
@@ -1391,13 +1564,28 @@ function saveWorkout(){
  if(wasEditing){
    date = editingWorkoutDate;
    dateKey = editingWorkoutKey;
-   // Replace previous records for this date key
    data.history = data.history.filter(w=>(w.dateKey || localDateKey(new Date(w.date)))!==editingWorkoutKey);
  } else {
    const now=new Date();
    date=now.toISOString();
    dateKey=localDateKey(now);
  }
+
+ let sessionPRs = [];
+ current.forEach(ex => {
+   const priorBest = getExerciseAllTimeBest(ex.name);
+   ex.sets.forEach(s => {
+     const wt = parseFloat(s.weight);
+     const rp = parseInt(s.reps);
+     if (!isNaN(wt) && !isNaN(rp) && wt > 0 && rp > 0) {
+       const curOneRM = wt * (1 + rp / 30);
+       if (!priorBest || curOneRM > (priorBest.oneRM + 0.1)) {
+         sessionPRs.push(`${ex.name}: ${wt} kg × ${rp} reps`);
+       }
+     }
+   });
+ });
+ sessionPRs = [...new Set(sessionPRs)];
 
  data.history.push({date,dateKey,muscles:[...selectedMuscles],exercises:JSON.parse(JSON.stringify(current))});
  if(!data.attendance) data.attendance = {};
@@ -1411,7 +1599,12 @@ function saveWorkout(){
  renderHistory();
  renderAttendance();
  renderHistoryAttendance();
- alert(wasEditing ? 'Workout updated ✓' : 'Workout saved ✓');
+
+ let msg = wasEditing ? 'Workout updated ✓' : 'Workout saved ✓';
+ if (sessionPRs.length > 0) {
+   msg += '\n\n🎉 NEW PRs BROKEN TODAY!\n• ' + sessionPRs.join('\n• ');
+ }
+ alert(msg);
 }
 
 function clearWorkout(){
@@ -1435,7 +1628,79 @@ function formatHistoryDate(key){
  };
 }
 
+function isHistoricalBest(name, weight, reps) {
+  const wt = parseFloat(weight);
+  const rp = parseInt(reps);
+  if (isNaN(wt) || isNaN(rp) || wt <= 0 || rp <= 0) return false;
+  const best = getExerciseAllTimeBest(name);
+  if (!best) return false;
+  const curOneRM = wt * (1 + rp / 30);
+  return Math.abs(curOneRM - best.oneRM) < 0.05;
+}
+
+function renderPRBoard() {
+  const container = document.getElementById('prBoardSection');
+  if (!container) return;
+
+  const prsByMuscle = {};
+  data.muscles.forEach(m => {
+    (data.exercises[m] || []).forEach(exName => {
+      const best = getExerciseAllTimeBest(exName);
+      if (best) {
+        if (!prsByMuscle[m]) prsByMuscle[m] = [];
+        prsByMuscle[m].push({ name: exName, ...best });
+      }
+    });
+  });
+
+  const muscleKeys = Object.keys(prsByMuscle);
+  if (!muscleKeys.length) {
+    container.innerHTML = `
+      <details class="pr-board-card">
+        <summary class="pr-board-summary">
+          <div style="display:flex;align-items:center;gap:7px">
+            <span>🏆</span><b>Personal Records (PR Board)</b>
+          </div>
+          <span class="history-chevron">⌄</span>
+        </summary>
+        <div class="pr-board-content">
+          <div class="muted" style="font-size:12.5px;padding:4px 0">No records yet. Complete your workouts to log PRs!</div>
+        </div>
+      </details>
+    `;
+    return;
+  }
+
+  container.innerHTML = `
+    <details class="pr-board-card">
+      <summary class="pr-board-summary">
+        <div style="display:flex;align-items:center;gap:7px">
+          <span>🏆</span><b>Personal Records (PR Board)</b>
+          <span style="font-size:11px;background:#d1fae5;color:#047857;padding:2px 7px;border-radius:10px">${muscleKeys.length} categories</span>
+        </div>
+        <span class="history-chevron">⌄</span>
+      </summary>
+      <div class="pr-board-content">
+        ${muscleKeys.map(m => `
+          <div style="margin-bottom:12px">
+            <div style="font-weight:750;font-size:12px;color:#064e3b;margin-bottom:5px;letter-spacing:0.3px">${esc(m).toUpperCase()}</div>
+            <div style="display:grid;gap:5px">
+              ${prsByMuscle[m].map(pr => `
+                <div class="pr-row">
+                  <span style="font-weight:600">${esc(pr.name)}</span>
+                  <span class="pr-score-badge">👑 ${pr.weight} kg × ${pr.reps} reps</span>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        `).join('')}
+      </div>
+    </details>
+  `;
+}
+
 function renderHistory(){
+ renderPRBoard();
  const summary=document.getElementById('historySummary');
  const h=document.getElementById('history');
 
@@ -1484,11 +1749,14 @@ function renderHistory(){
              <b>${esc(e.name)}</b><span class="chip">${esc(e.muscle||'')}</span>
            </div>
            <div class="history-sets">
-             ${e.sets.length?e.sets.map((s,si)=>`<div class="history-set">
-               <span>Set ${si+1}</span>
-               <b>${esc(s.weight||'—')} kg</b>
-               <b>${esc(s.reps||'—')} reps</b>
-             </div>`).join(''):'<span class="muted">No sets recorded</span>'}
+             ${e.sets.length?e.sets.map((s,si)=>{
+               const isBest = isHistoricalBest(e.name, s.weight, s.reps);
+               return `<div class="history-set">
+                 <span>Set ${si+1} ${isBest ? '<span class="set-pr-tag">👑 PR</span>' : ''}</span>
+                 <b>${esc(s.weight||'—')} kg</b>
+                 <b>${esc(s.reps||'—')} reps</b>
+               </div>`;
+             }).join(''):'<span class="muted">No sets recorded</span>'}
            </div>
          </div>`).join('')}
        </div>
