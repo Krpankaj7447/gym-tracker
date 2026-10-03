@@ -312,6 +312,42 @@ body.dark .pr-empty-box{background:#07271e;border-color:#134e3f;color:#94a3b8}
 .progression-banner.hidden{display:none}
 body.dark .progression-banner{background:#064e3b;border-color:#059669;color:#a7f3d0}
 
+/* Body Measurements styles */
+.measure-sec-head{display:flex;justify-content:space-between;align-items:center;margin:12px 0 6px}
+.measure-sec-title{font-size:12px;font-weight:750;color:#065f46;text-transform:uppercase;letter-spacing:0.4px;display:flex;align-items:center;gap:5px}
+body.dark .measure-sec-title{color:#34d399}
+.measure-grid-2{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:8px}
+.measure-input-box{display:flex;flex-direction:column;gap:3px}
+.measure-input-box label{font-size:11.5px;font-weight:700;color:#334155;margin:0}
+body.dark .measure-input-box label{color:#94a3b8}
+.measure-input-box input{margin:0;padding:8px 10px;font-size:13.5px;font-weight:600}
+.measure-entry-card{background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:12px 14px;margin-bottom:10px}
+body.dark .measure-entry-card{background:#0b261e;border-color:#134e3f}
+.measure-chips-wrap{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}
+.measure-metric-chip{background:#f8fafc;color:#1e293b;border:1px solid #cbd5e1;padding:3px 8px;border-radius:6px;font-size:11.5px;font-weight:650}
+body.dark .measure-metric-chip{background:#061a14;color:#ecfdf5;border-color:#134e3f}
+.symmetry-box{background:#f0fdf4;border:1px solid #a7f3d0;border-radius:12px;padding:12px 14px;margin-bottom:14px}
+body.dark .symmetry-box{background:#07271e;border-color:#134e3f}
+.symmetry-row{display:flex;justify-content:space-between;align-items:center;padding:5px 0;font-size:12.5px;border-bottom:1px dashed #d1fae5}
+body.dark .symmetry-row{border-color:#134e3f}
+.symmetry-row:last-child{border-bottom:0}
+.symmetry-tag{padding:2px 7px;border-radius:6px;font-size:11px;font-weight:750}
+.symmetry-tag.balanced{background:#d1fae5;color:#047857}
+body.dark .symmetry-tag.balanced{background:#064e3b;color:#a7f3d0}
+.symmetry-tag.alert{background:#fef3c7;color:#92400e}
+body.dark .symmetry-tag.alert{background:#78350f;color:#fde68a}
+.unit-toggle-pill{display:flex;background:#f1f5f9;border:1px solid #cbd5e1;border-radius:16px;overflow:hidden;padding:2px}
+body.dark .unit-toggle-pill{background:#061a14;border-color:#134e3f}
+.unit-btn{border:0;background:transparent;padding:3px 10px;font-size:11.5px;font-weight:700;border-radius:14px;cursor:pointer;color:#64748b}
+.unit-btn.active{background:#059669;color:#fff}
+body.dark .unit-btn{color:#94a3b8}
+body.dark .unit-btn.active{background:#059669;color:#fff}
+.measure-delta{font-size:10.5px;font-weight:800;padding:1px 4px;border-radius:4px;margin-left:4px}
+.measure-delta.gain{color:#059669;background:#ecfdf5}
+body.dark .measure-delta.gain{color:#34d399;background:#064e3b}
+.measure-delta.loss{color:#b91c1c;background:#fee2e2}
+body.dark .measure-delta.loss{color:#f87171;background:#7f1d1d}
+
 .timer-digits.blink-red{
   color:#ef4444 !important;
   animation:timerRedBlink .5s infinite alternate ease-in-out;
@@ -600,6 +636,137 @@ body.dark .timer-adj-btn{background:#134e3f;border-color:#134e3f;color:#ecfdf5}
 <div class="card"><h2>Workout History</h2><div id="historySummary" class="muted" style="margin-bottom:8px"></div><div id="history"></div></div>
 </section>
 
+<section id="measureView" class="hidden">
+  <!-- Snapshot & Symmetry Card -->
+  <div id="measureSnapshotCard" class="card" style="margin-bottom:12px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+      <h2 style="margin:0;font-size:16px">Symmetry & Physique Snapshot</h2>
+      <span id="measureLatestDateBadge" class="pr-score-badge" style="font-size:11px">No check-in yet</span>
+    </div>
+    <div id="measureSnapshotBody">
+      <div class="muted" style="font-size:12.5px;padding:6px 0">Log your first body measurement below to unlock symmetry and growth tracking!</div>
+    </div>
+  </div>
+
+  <!-- Form Card -->
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+      <h2 id="measureFormTitle" style="margin:0;font-size:16px">Log Body Measurements</h2>
+      <div class="unit-toggle-pill">
+        <button type="button" id="unitInBtn" class="unit-btn active" onclick="setMeasureUnit('in')">in</button>
+        <button type="button" id="unitCmBtn" class="unit-btn" onclick="setMeasureUnit('cm')">cm</button>
+      </div>
+    </div>
+    <p class="muted" style="font-size:11.5px;margin-top:2px;margin-bottom:12px">
+      💡 <b>Tip:</b> Nothing is mandatory. Save your weight at the gym now, and add your tape measurements later from home!
+    </p>
+
+    <div style="margin-bottom:12px">
+      <label style="font-size:11.5px;font-weight:700">Check-in Date</label>
+      <input type="date" id="mDate">
+    </div>
+
+    <!-- Core Vitals -->
+    <div class="measure-sec-title">⚖️ Body Vitals</div>
+    <div class="measure-grid-2">
+      <div class="measure-input-box">
+        <label>Body Weight (kg)</label>
+        <input type="number" step="0.1" id="mWeight" placeholder="e.g. 74.5">
+      </div>
+      <div class="measure-input-box">
+        <label>Height (cm / ft)</label>
+        <input type="text" id="mHeight" placeholder="e.g. 175 cm">
+      </div>
+    </div>
+
+    <!-- Arms & Forearms (Symmetry) -->
+    <div class="measure-sec-title">💪 Arms & Forearms (<span class="unit-label">in</span>)</div>
+    <div class="measure-grid-2">
+      <div class="measure-input-box">
+        <label>Right Bicep (Flexed)</label>
+        <input type="number" step="0.1" id="mRightBicep" placeholder="e.g. 15.2">
+      </div>
+      <div class="measure-input-box">
+        <label>Left Bicep (Flexed)</label>
+        <input type="number" step="0.1" id="mLeftBicep" placeholder="e.g. 15.0">
+      </div>
+      <div class="measure-input-box">
+        <label>Right Forearm ⚡</label>
+        <input type="number" step="0.1" id="mRightForearm" placeholder="e.g. 12.5">
+      </div>
+      <div class="measure-input-box">
+        <label>Left Forearm ⚡</label>
+        <input type="number" step="0.1" id="mLeftForearm" placeholder="e.g. 12.5">
+      </div>
+    </div>
+
+    <!-- Torso & V-Taper -->
+    <div class="measure-sec-title">📐 Torso & V-Taper (<span class="unit-label">in</span>)</div>
+    <div class="measure-grid-2">
+      <div class="measure-input-box">
+        <label>Shoulders (Delts)</label>
+        <input type="number" step="0.1" id="mShoulders" placeholder="e.g. 48.0">
+      </div>
+      <div class="measure-input-box">
+        <label>Chest</label>
+        <input type="number" step="0.1" id="mChest" placeholder="e.g. 41.0">
+      </div>
+      <div class="measure-input-box">
+        <label>Waist (at navel)</label>
+        <input type="number" step="0.1" id="mWaist" placeholder="e.g. 32.0">
+      </div>
+      <div class="measure-input-box">
+        <label>Neck</label>
+        <input type="number" step="0.1" id="mNeck" placeholder="e.g. 15.5">
+      </div>
+      <div class="measure-input-box" style="grid-column:1/-1">
+        <label>Hips / Glutes</label>
+        <input type="number" step="0.1" id="mHips" placeholder="e.g. 38.0">
+      </div>
+    </div>
+
+    <!-- Lower Body -->
+    <div class="measure-sec-title">🦵 Lower Body (<span class="unit-label">in</span>)</div>
+    <div class="measure-grid-2">
+      <div class="measure-input-box">
+        <label>Right Thigh (Quad)</label>
+        <input type="number" step="0.1" id="mRightThigh" placeholder="e.g. 23.5">
+      </div>
+      <div class="measure-input-box">
+        <label>Left Thigh (Quad)</label>
+        <input type="number" step="0.1" id="mLeftThigh" placeholder="e.g. 23.5">
+      </div>
+      <div class="measure-input-box">
+        <label>Right Calf</label>
+        <input type="number" step="0.1" id="mRightCalf" placeholder="e.g. 15.0">
+      </div>
+      <div class="measure-input-box">
+        <label>Left Calf</label>
+        <input type="number" step="0.1" id="mLeftCalf" placeholder="e.g. 15.0">
+      </div>
+    </div>
+
+    <!-- Notes -->
+    <div style="margin-top:6px;margin-bottom:14px">
+      <label style="font-size:11.5px;font-weight:700">Notes (Optional)</label>
+      <input type="text" id="mNotes" placeholder="e.g. Fasted morning check-in, 4 weeks into bulk">
+    </div>
+
+    <!-- Action Buttons -->
+    <div class="actions">
+      <button class="primary" id="saveMeasureBtn" onclick="saveMeasurement()">💾 Save Measurement</button>
+      <button class="secondary hidden" id="cancelMeasureBtn" onclick="cancelMeasureEdit()">Cancel</button>
+    </div>
+  </div>
+
+  <!-- History Timeline Card -->
+  <div class="card" style="margin-top:14px">
+    <h2>Measurement History</h2>
+    <div id="measureHistorySummary" class="muted" style="margin-bottom:8px"></div>
+    <div id="measureHistoryList"></div>
+  </div>
+</section>
+
 <section id="manageView" class="hidden">
 <div class="card">
 <h2>Customize</h2>
@@ -626,6 +793,9 @@ body.dark .timer-adj-btn{background:#134e3f;border-color:#134e3f;color:#ecfdf5}
 </button>
 <button id="tabHistory" onclick="showTab('history')">
   <span class="nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M6 3h9l3 3v15H6z"/><path d="M14 3v4h4M9 11h6M9 15h6M9 7h2"/></svg></span><span>History</span>
+</button>
+<button id="tabMeasure" onclick="showTab('measure')">
+  <span class="nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M21 6H3a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h18a1 1 0 0 0 1-1V7a1 1 0 0 0-1-1zm-1 10H4V8h2v3h2V8h2v2h2V8h2v3h2V8h2v2h2V8h2v8z"/></svg></span><span>Measure</span>
 </button>
 <button id="tabManage" onclick="showTab('manage')">
   <span class="nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M9.4 3.2 10 2h4l.6 1.2 1.6.7 1.3-.4 2.8 2.8-.4 1.3.7 1.6L22 10v4l-1.4.8-.7 1.6.4 1.3-2.8 2.8-1.3-.4-1.6.7L14 22h-4l-.6-1.2-1.6-.7-1.3.4-2.8-2.8.4-1.3-.7-1.6L2 14v-4l1.4-.8.7-1.6-.4-1.3 2.8-2.8 1.3.4z"/><circle cx="12" cy="12" r="3"/></svg></span><span>Customize</span>
@@ -726,7 +896,8 @@ const defaultData={
   ]
  },
  history:[],
- attendance:{}
+ attendance:{},
+ measurements:[]
 };
 let data=load(), selectedMuscles=['Chest','Triceps'], current=[];
 let editingWorkoutKey = null, editingWorkoutDate = null;
@@ -1333,6 +1504,7 @@ function load(){
     // Ensure every muscle has an exercise array.
     saved.muscles.forEach(m=>{if(!Array.isArray(saved.exercises[m])) saved.exercises[m]=[]});
     if(!saved.attendance || typeof saved.attendance !== 'object') saved.attendance = {};
+    if(!saved.measurements || !Array.isArray(saved.measurements)) saved.measurements = [];
     Object.keys(saved.attendance).forEach(k => {
       if (saved.attendance[k] === 'rest') {
         const [y, m, d] = k.split('-').map(Number);
@@ -1345,10 +1517,17 @@ function load(){
 function persist(){localStorage.setItem(KEY,JSON.stringify(data))}
 function esc(s){return String(s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
 function showTab(t){
- ['workout','history','manage'].forEach(x=>document.getElementById(x+'View').classList.toggle('hidden',x!==t));
- ['workout','history','manage'].forEach(x=>document.getElementById('tab'+x[0].toUpperCase()+x.slice(1)).classList.toggle('active',x===t));
+ ['workout','history','measure','manage'].forEach(x=>{
+   const view = document.getElementById(x+'View');
+   if(view) view.classList.toggle('hidden',x!==t);
+ });
+ ['workout','history','measure','manage'].forEach(x=>{
+   const btn = document.getElementById('tab'+x[0].toUpperCase()+x.slice(1));
+   if(btn) btn.classList.toggle('active',x===t);
+ });
  if(t==='workout'){ renderAttendance(); }
  if(t==='history'){ renderHistory(); renderHistoryAttendance(); }
+ if(t==='measure'){ renderMeasure(); }
  if(t==='manage')renderManage();
 }
 function renderMuscles(){
@@ -2149,20 +2328,349 @@ function deleteMuscleByIndex(mi){
   renderMuscles();
   renderManage();
 }
+// ==================== BODY MEASUREMENTS ====================
+let currentMeasureUnit = 'in';
+let editingMeasureId = null;
+
+function setMeasureUnit(u) {
+  currentMeasureUnit = u;
+  const inBtn = document.getElementById('unitInBtn');
+  const cmBtn = document.getElementById('unitCmBtn');
+  if (inBtn) inBtn.classList.toggle('active', u === 'in');
+  if (cmBtn) cmBtn.classList.toggle('active', u === 'cm');
+  document.querySelectorAll('.unit-label').forEach(el => { el.textContent = u; });
+}
+
+function getMeasureFormValues() {
+  const g = (id) => (document.getElementById(id) ? document.getElementById(id).value.trim() : '');
+  return {
+    date: document.getElementById('mDate') && document.getElementById('mDate').value ? document.getElementById('mDate').value : localDateKey(new Date()),
+    unit: currentMeasureUnit,
+    weight: g('mWeight'),
+    height: g('mHeight'),
+    rightBicep: g('mRightBicep'),
+    leftBicep: g('mLeftBicep'),
+    rightForearm: g('mRightForearm'),
+    leftForearm: g('mLeftForearm'),
+    shoulders: g('mShoulders'),
+    chest: g('mChest'),
+    neck: g('mNeck'),
+    waist: g('mWaist'),
+    hips: g('mHips'),
+    rightThigh: g('mRightThigh'),
+    leftThigh: g('mLeftThigh'),
+    rightCalf: g('mRightCalf'),
+    leftCalf: g('mLeftCalf'),
+    notes: g('mNotes')
+  };
+}
+
+function clearMeasureForm() {
+  editingMeasureId = null;
+  const dInput = document.getElementById('mDate');
+  if (dInput) dInput.value = localDateKey(new Date());
+  [
+    'mWeight', 'mHeight', 'mRightBicep', 'mLeftBicep',
+    'mRightForearm', 'mLeftForearm', 'mShoulders', 'mChest',
+    'mNeck', 'mWaist', 'mHips', 'mRightThigh', 'mLeftThigh',
+    'mRightCalf', 'mLeftCalf', 'mNotes'
+  ].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+  const saveBtn = document.getElementById('saveMeasureBtn');
+  if (saveBtn) saveBtn.textContent = '💾 Save Measurement';
+  const cancelBtn = document.getElementById('cancelMeasureBtn');
+  if (cancelBtn) cancelBtn.classList.add('hidden');
+  const title = document.getElementById('measureFormTitle');
+  if (title) title.textContent = 'Log Body Measurements';
+}
+
+function saveMeasurement() {
+  const vals = getMeasureFormValues();
+  const keysToCheck = [
+    'weight', 'height', 'rightBicep', 'leftBicep', 'rightForearm', 'leftForearm',
+    'shoulders', 'chest', 'neck', 'waist', 'hips', 'rightThigh', 'leftThigh',
+    'rightCalf', 'leftCalf', 'notes'
+  ];
+  const hasAnyValue = keysToCheck.some(k => vals[k] !== '');
+  if (!hasAnyValue) {
+    alert('Please enter at least one measurement (e.g. weight, arms, etc.) before saving.');
+    return;
+  }
+
+  if (!data.measurements) data.measurements = [];
+
+  if (editingMeasureId) {
+    const idx = data.measurements.findIndex(m => m.id === editingMeasureId);
+    if (idx !== -1) {
+      data.measurements[idx] = { id: editingMeasureId, ...vals };
+    }
+    editingMeasureId = null;
+    alert('Measurement updated ✓');
+  } else {
+    data.measurements.push({ id: 'm_' + Date.now(), ...vals });
+    alert('Measurement saved ✓');
+  }
+
+  persist();
+  clearMeasureForm();
+  renderMeasure();
+}
+
+function editMeasurement(id) {
+  if (!data.measurements) return;
+  const m = data.measurements.find(x => x.id === id);
+  if (!m) return;
+
+  editingMeasureId = id;
+  setMeasureUnit(m.unit || 'in');
+  const setVal = (fid, val) => {
+    const el = document.getElementById(fid);
+    if (el) el.value = val || '';
+  };
+
+  setVal('mDate', m.date || localDateKey(new Date()));
+  setVal('mWeight', m.weight);
+  setVal('mHeight', m.height);
+  setVal('mRightBicep', m.rightBicep);
+  setVal('mLeftBicep', m.leftBicep);
+  setVal('mRightForearm', m.rightForearm);
+  setVal('mLeftForearm', m.leftForearm);
+  setVal('mShoulders', m.shoulders);
+  setVal('mChest', m.chest);
+  setVal('mNeck', m.neck);
+  setVal('mWaist', m.waist);
+  setVal('mHips', m.hips);
+  setVal('mRightThigh', m.rightThigh);
+  setVal('mLeftThigh', m.leftThigh);
+  setVal('mRightCalf', m.rightCalf);
+  setVal('mLeftCalf', m.leftCalf);
+  setVal('mNotes', m.notes);
+
+  const saveBtn = document.getElementById('saveMeasureBtn');
+  if (saveBtn) saveBtn.textContent = '💾 Update Measurement';
+  const cancelBtn = document.getElementById('cancelMeasureBtn');
+  if (cancelBtn) cancelBtn.classList.remove('hidden');
+  const title = document.getElementById('measureFormTitle');
+  if (title) title.textContent = 'Edit Measurement';
+
+  const formCard = document.getElementById('measureFormTitle');
+  if (formCard) formCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function cancelMeasureEdit() {
+  clearMeasureForm();
+}
+
+function deleteMeasurement(id) {
+  if (!confirm('Are you sure you want to delete this measurement entry?')) return;
+  if (!data.measurements) return;
+  data.measurements = data.measurements.filter(x => x.id !== id);
+  if (editingMeasureId === id) clearMeasureForm();
+  persist();
+  renderMeasure();
+}
+
+function renderMeasure() {
+  const dInput = document.getElementById('mDate');
+  if (dInput && !dInput.value) dInput.value = localDateKey(new Date());
+
+  if (!data.measurements) data.measurements = [];
+  const sorted = [...data.measurements].sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+
+  const summary = document.getElementById('measureHistorySummary');
+  if (summary) {
+    summary.textContent = sorted.length + ' check-in' + (sorted.length === 1 ? '' : 's') + ' recorded';
+  }
+
+  // Snapshot Card
+  const snapshotBody = document.getElementById('measureSnapshotBody');
+  const dateBadge = document.getElementById('measureLatestDateBadge');
+
+  if (!sorted.length) {
+    if (dateBadge) dateBadge.textContent = 'No check-in yet';
+    if (snapshotBody) {
+      snapshotBody.innerHTML = '<div class="muted" style="font-size:12.5px;padding:6px 0">Log your first body measurement below to unlock symmetry and growth tracking!</div>';
+    }
+  } else {
+    const latest = sorted[0];
+    const prev = sorted.length > 1 ? sorted[1] : null;
+    const u = latest.unit || 'in';
+
+    if (dateBadge) dateBadge.textContent = '📅 ' + formatPRDate(latest.date);
+
+    let html = '';
+
+    // Quick Vitals summary
+    const vitals = [];
+    if (latest.weight) {
+      let deltaStr = '';
+      if (prev && prev.weight) {
+        const diff = (parseFloat(latest.weight) - parseFloat(prev.weight)).toFixed(1);
+        const sign = diff > 0 ? '+' : '';
+        const cls = diff >= 0 ? 'gain' : 'loss';
+        deltaStr = ` <span class="measure-delta ${cls}">${sign}${diff} kg</span>`;
+      }
+      vitals.push(`<b>Weight:</b> ${latest.weight} kg${deltaStr}`);
+    }
+    if (latest.height) vitals.push(`<b>Height:</b> ${latest.height}`);
+    if (latest.chest) vitals.push(`<b>Chest:</b> ${latest.chest} ${u}`);
+    if (latest.waist) vitals.push(`<b>Waist:</b> ${latest.waist} ${u}`);
+
+    if (vitals.length) {
+      html += `<div style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:12px;font-size:13px">${vitals.join('<span class="muted">•</span>')}</div>`;
+    }
+
+    // Symmetry Analysis
+    const symmetryRows = [];
+
+    // Forearms symmetry
+    if (latest.rightForearm && latest.leftForearm) {
+      const rf = parseFloat(latest.rightForearm), lf = parseFloat(latest.leftForearm);
+      const diff = Math.abs(rf - lf).toFixed(1);
+      const isBal = diff < 0.2;
+      const tagCls = isBal ? 'balanced' : 'alert';
+      const label = isBal ? 'Balanced ⚖️' : (rf > lf ? `Right +${diff} ${u}` : `Left +${diff} ${u}`);
+      symmetryRows.push(`
+        <div class="symmetry-row">
+          <span>⚡ <b>Forearms:</b> R ${latest.rightForearm} ${u} | L ${latest.leftForearm} ${u}</span>
+          <span class="symmetry-tag ${tagCls}">${label}</span>
+        </div>
+      `);
+    }
+
+    // Biceps symmetry
+    if (latest.rightBicep && latest.leftBicep) {
+      const rb = parseFloat(latest.rightBicep), lb = parseFloat(latest.leftBicep);
+      const diff = Math.abs(rb - lb).toFixed(1);
+      const isBal = diff < 0.25;
+      const tagCls = isBal ? 'balanced' : 'alert';
+      const label = isBal ? 'Balanced ⚖️' : (rb > lb ? `Right +${diff} ${u}` : `Left +${diff} ${u}`);
+      symmetryRows.push(`
+        <div class="symmetry-row">
+          <span>💪 <b>Biceps:</b> R ${latest.rightBicep} ${u} | L ${latest.leftBicep} ${u}</span>
+          <span class="symmetry-tag ${tagCls}">${label}</span>
+        </div>
+      `);
+    }
+
+    // Thighs symmetry
+    if (latest.rightThigh && latest.leftThigh) {
+      const rt = parseFloat(latest.rightThigh), lt = parseFloat(latest.leftThigh);
+      const diff = Math.abs(rt - lt).toFixed(1);
+      const isBal = diff < 0.3;
+      const tagCls = isBal ? 'balanced' : 'alert';
+      const label = isBal ? 'Balanced ⚖️' : (rt > lt ? `Right +${diff} ${u}` : `Left +${diff} ${u}`);
+      symmetryRows.push(`
+        <div class="symmetry-row">
+          <span>🦵 <b>Thighs:</b> R ${latest.rightThigh} ${u} | L ${latest.leftThigh} ${u}</span>
+          <span class="symmetry-tag ${tagCls}">${label}</span>
+        </div>
+      `);
+    }
+
+    // Calves symmetry
+    if (latest.rightCalf && latest.leftCalf) {
+      const rc = parseFloat(latest.rightCalf), lc = parseFloat(latest.leftCalf);
+      const diff = Math.abs(rc - lc).toFixed(1);
+      const isBal = diff < 0.25;
+      const tagCls = isBal ? 'balanced' : 'alert';
+      const label = isBal ? 'Balanced ⚖️' : (rc > lc ? `Right +${diff} ${u}` : `Left +${diff} ${u}`);
+      symmetryRows.push(`
+        <div class="symmetry-row">
+          <span>🦶 <b>Calves:</b> R ${latest.rightCalf} ${u} | L ${latest.leftCalf} ${u}</span>
+          <span class="symmetry-tag ${tagCls}">${label}</span>
+        </div>
+      `);
+    }
+
+    // V-Taper Ratio
+    if (latest.shoulders && latest.waist && parseFloat(latest.waist) > 0) {
+      const ratio = (parseFloat(latest.shoulders) / parseFloat(latest.waist)).toFixed(2);
+      symmetryRows.push(`
+        <div class="symmetry-row">
+          <span>📐 <b>V-Taper Ratio (Shoulders/Waist):</b> ${ratio}</span>
+          <span class="symmetry-tag balanced">${ratio >= 1.6 ? 'Elite V-Taper 👑' : 'Target: ~1.618'}</span>
+        </div>
+      `);
+    }
+
+    if (symmetryRows.length) {
+      html += `<div class="symmetry-box">${symmetryRows.join('')}</div>`;
+    }
+
+    if (snapshotBody) snapshotBody.innerHTML = html;
+  }
+
+  // History List
+  const listEl = document.getElementById('measureHistoryList');
+  if (!listEl) return;
+
+  if (!sorted.length) {
+    listEl.innerHTML = '<div class="empty">No body measurements recorded yet.</div>';
+    return;
+  }
+
+  listEl.innerHTML = sorted.map((m, idx) => {
+    const u = m.unit || 'in';
+    const chips = [];
+
+    if (m.weight) chips.push(`⚖️ <b>${m.weight}</b> kg`);
+    if (m.height) chips.push(`📏 ${m.height}`);
+    if (m.rightForearm || m.leftForearm) {
+      chips.push(`⚡ Forearms: R ${m.rightForearm || '—'} / L ${m.leftForearm || '—'} ${u}`);
+    }
+    if (m.rightBicep || m.leftBicep) {
+      chips.push(`💪 Biceps: R ${m.rightBicep || '—'} / L ${m.leftBicep || '—'} ${u}`);
+    }
+    if (m.shoulders) chips.push(`Shoulders: ${m.shoulders} ${u}`);
+    if (m.chest) chips.push(`Chest: ${m.chest} ${u}`);
+    if (m.neck) chips.push(`Neck: ${m.neck} ${u}`);
+    if (m.waist) chips.push(`Waist: ${m.waist} ${u}`);
+    if (m.hips) chips.push(`Hips: ${m.hips} ${u}`);
+    if (m.rightThigh || m.leftThigh) {
+      chips.push(`🦵 Thighs: R ${m.rightThigh || '—'} / L ${m.leftThigh || '—'} ${u}`);
+    }
+    if (m.rightCalf || m.leftCalf) {
+      chips.push(`Calves: R ${m.rightCalf || '—'} / L ${m.leftCalf || '—'} ${u}`);
+    }
+
+    return `
+      <div class="measure-entry-card">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div>
+            <b style="font-size:13.5px">📅 ${formatPRDate(m.date)}</b>
+            ${idx === 0 ? '<span class="set-pr-tag" style="margin-left:6px">Latest</span>' : ''}
+          </div>
+          <div class="actions" style="margin:0;gap:6px">
+            <button class="secondary small" onclick="editMeasurement('${m.id}')">Edit</button>
+            <button class="danger small" onclick="deleteMeasurement('${m.id}')">Delete</button>
+          </div>
+        </div>
+        <div class="measure-chips-wrap">
+          ${chips.map(c => `<span class="measure-metric-chip">${c}</span>`).join('')}
+        </div>
+        ${m.notes ? `<div class="muted" style="font-size:12px;margin-top:4px">📝 <i>${esc(m.notes)}</i></div>` : ''}
+      </div>
+    `;
+  }).join('');
+}
+
 function addMuscle(){let v=document.getElementById('newMuscle').value.trim();if(!v)return;if(data.muscles.includes(v)){alert('Already exists');return}data.muscles.push(v);data.exercises[v]=[];persist();document.getElementById('newMuscle').value='';renderMuscles();renderManage()}
 function addCustomExercise(){let m=document.getElementById('newExMuscle').value,e=document.getElementById('newExercise').value.trim();if(!e)return;if(!data.exercises[m])data.exercises[m]=[];if(!data.exercises[m].includes(e))data.exercises[m].push(e);persist();document.getElementById('newExercise').value='';renderMuscles();renderManage()}
 function exportData(){let blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='gym-tracker-backup.json';a.click();URL.revokeObjectURL(a.href)}
-function importData(ev){let f=ev.target.files[0];if(!f)return;let r=new FileReader();r.onload=()=>{try{let x=JSON.parse(r.result);if(!x.muscles||!x.exercises||!x.history)throw 0;if(!x.attendance)x.attendance={};data=x;persist();loadTheme();
+function importData(ev){let f=ev.target.files[0];if(!f)return;let r=new FileReader();r.onload=()=>{try{let x=JSON.parse(r.result);if(!x.muscles||!x.exercises||!x.history)throw 0;if(!x.attendance)x.attendance={};if(!x.measurements||!Array.isArray(x.measurements))x.measurements=[];data=x;persist();loadTheme();
 editingWorkoutKey=null;editingWorkoutDate=null;updateEditingBanner();
 document.getElementById('todayDate').textContent=new Date().toLocaleDateString(undefined,{weekday:'short',day:'numeric',month:'short',year:'numeric'});
-renderMuscles();renderCurrent();renderAttendance();renderHistoryAttendance();alert('Data restored ✓')}catch(e){alert('Invalid backup file.')}};r.readAsText(f)}
-function resetAll(){if(confirm('Delete all workout history and custom data?')){data=structuredClone(defaultData);persist();selectedMuscles=['Chest','Triceps'];current=[];editingWorkoutKey=null;editingWorkoutDate=null;updateEditingBanner();loadTheme();
+renderMuscles();renderCurrent();renderAttendance();renderHistoryAttendance();renderMeasure();alert('Data restored ✓')}catch(e){alert('Invalid backup file.')}};r.readAsText(f)}
+function resetAll(){if(confirm('Delete all workout history, measurements, and custom data?')){data=structuredClone(defaultData);persist();selectedMuscles=['Chest','Triceps'];current=[];editingWorkoutKey=null;editingWorkoutDate=null;updateEditingBanner();loadTheme();
 document.getElementById('todayDate').textContent=new Date().toLocaleDateString(undefined,{weekday:'short',day:'numeric',month:'short',year:'numeric'});
-renderMuscles();renderCurrent();renderAttendance();renderHistoryAttendance();renderManage();}}
+renderMuscles();renderCurrent();renderAttendance();renderHistoryAttendance();renderMeasure();renderManage();}}
 loadTheme();
 loadTimerSettings();
 document.getElementById('todayDate').textContent=new Date().toLocaleDateString(undefined,{weekday:'short',day:'numeric',month:'short',year:'numeric'});
-renderMuscles();renderCurrent();renderAttendance();renderHistoryAttendance();
+renderMuscles();renderCurrent();renderAttendance();renderHistoryAttendance();renderMeasure();
 if(navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(()=>{});
 </script>
 
