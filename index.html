@@ -308,8 +308,9 @@ body.dark .pr-step-date{color:#94a3b8}
 .pr-step-metric{font-weight:600}
 .pr-empty-box{text-align:center;padding:18px 12px;background:#f8fafc;border-radius:10px;border:1px dashed #cbd5e1;color:#64748b;margin:6px 0}
 body.dark .pr-empty-box{background:#07271e;border-color:#134e3f;color:#94a3b8}
-.suggest-hint-row{font-size:11px;color:#059669;margin-top:2px;grid-column:2/4;line-height:1.2}
-body.dark .suggest-hint-row{color:#34d399}
+.progression-banner{background:#ecfdf5;border:1px solid #a7f3d0;color:#047857;padding:7px 11px;border-radius:8px;font-size:11.5px;font-weight:650;margin-top:8px;line-height:1.3}
+.progression-banner.hidden{display:none}
+body.dark .progression-banner{background:#064e3b;border-color:#059669;color:#a7f3d0}
 
 .timer-digits.blink-red{
   color:#ef4444 !important;
@@ -1366,11 +1367,24 @@ function lastFor(ex){
 
 function getExerciseIncrement(name) {
   const lower = (name || '').toLowerCase();
-  if (lower.includes('machine') || lower.includes('pec deck') || lower.includes('cable') || 
-      lower.includes('lat pulldown') || lower.includes('seated') || lower.includes('extension') || 
-      lower.includes('press machine') || lower.includes('leg press') || lower.includes('leg curl') || 
-      lower.includes('smith')) {
-    return 5;
+  const machineKeywords = [
+    'machine',
+    'cable',
+    'pulldown',
+    'pushdown',
+    'pec deck',
+    'press machine',
+    'leg press',
+    'leg curl',
+    'hack squat',
+    'face pull',
+    'assisted',
+    'captain'
+  ];
+  for (const kw of machineKeywords) {
+    if (lower.includes(kw)) {
+      return 5;
+    }
   }
   return 2.5;
 }
@@ -1450,13 +1464,17 @@ function autoProgressionTrigger(ei, si) {
 
     const nextWInput = document.getElementById(`weight-${ei}-${si + 1}`);
     const nextRInput = document.getElementById(`reps-${ei}-${si + 1}`);
-    const nextHint = document.getElementById(`suggest-hint-${ei}-${si + 1}`);
     if (nextWInput) nextWInput.value = nextW;
     if (nextRInput) nextRInput.value = nextR;
-    if (nextHint) {
-      nextHint.innerHTML = (r >= 12)
-        ? `⚡ <b style="color:#059669">+${inc} kg</b> auto-suggested (12 reps hit!)`
-        : `⚡ Same weight suggested (Recovery & form)`;
+
+    const banner = document.getElementById(`progression-banner-${ei}`);
+    if (banner) {
+      const msg = (r >= 12)
+        ? `⚡ <b>Set ${si + 2} auto-suggested:</b> +${inc} kg (${r} reps hit in Set ${si + 1}!)`
+        : `⚡ <b>Set ${si + 2} auto-suggested:</b> Same weight (Recovery & form)`;
+      current[ei]._suggestMsg = msg;
+      banner.innerHTML = msg;
+      banner.classList.remove('hidden');
     }
   }
 }
@@ -1556,10 +1574,10 @@ function progressHint(p){
           <input id="weight-${ei}-${si}" inputmode="decimal" value="${esc(s.weight)}" placeholder="e.g. 60" oninput="upd(${ei},${si},'weight',this.value)">
           <input id="reps-${ei}-${si}" inputmode="numeric" value="${esc(s.reps)}" placeholder="e.g. 8" oninput="upd(${ei},${si},'reps',this.value)">
           <button class="remove" onclick="removeSet(${ei},${si})">−</button>
-        </div>
-        <div class="suggest-hint-row" id="suggest-hint-${ei}-${si}"></div>`;
+        </div>`;
       }).join('')}
     </div>
+    <div class="progression-banner ${ex._suggestMsg ? '' : 'hidden'}" id="progression-banner-${ei}">${ex._suggestMsg || ''}</div>
     <button class="secondary small" style="margin-top:8px" onclick="addSet(${ei})">+ Set</button>
    </div>`;
   }).join('');
@@ -1929,7 +1947,7 @@ function renderPRBoard() {
   if (!container) return;
 
   const existingDetails = container.querySelector('.pr-board-card');
-  const wasOpen = existingDetails ? existingDetails.hasAttribute('open') : true;
+  const wasOpen = existingDetails ? existingDetails.hasAttribute('open') : false;
 
   const { muscleList, prsByMuscle, totalCount } = getAllPRsGrouped();
 
