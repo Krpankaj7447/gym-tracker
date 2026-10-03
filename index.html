@@ -866,6 +866,35 @@ let timerCurrentType = 'set';
 let timerSettings = { setRest: 60, exRest: 120 };
 let timerSoundEnabled = false; // Default OFF as requested
 
+/* Screen Wake Lock to prevent screen sleep while timer is active */
+let wakeLockSentinel = null;
+
+async function requestWakeLock() {
+  try {
+    if ('wakeLock' in navigator && !wakeLockSentinel) {
+      wakeLockSentinel = await navigator.wakeLock.request('screen');
+      wakeLockSentinel.addEventListener('release', () => {
+        wakeLockSentinel = null;
+      });
+    }
+  } catch (err) {
+    console.warn('Wake Lock error:', err);
+  }
+}
+
+function releaseWakeLock() {
+  if (wakeLockSentinel) {
+    wakeLockSentinel.release().catch(() => {});
+    wakeLockSentinel = null;
+  }
+}
+
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible' && (timerInterval !== null || timerRemaining > 0)) {
+    requestWakeLock();
+  }
+});
+
 function loadTimerSettings() {
   try {
     const saved = localStorage.getItem('gym_timer_settings');
@@ -1072,6 +1101,7 @@ function startRestCountdown(type) {
 
   if (timerInterval) clearInterval(timerInterval);
   timerInterval = setInterval(timerTick, 1000);
+  requestWakeLock();
 }
 
 function timerTick() {
@@ -1148,6 +1178,7 @@ function toggleTimerPause() {
       ppBtn.textContent = '⏸';
       ppBtn.title = 'Pause';
     }
+    requestWakeLock();
   }
   updateTimerDisplay();
 }
@@ -1157,6 +1188,7 @@ function stopRestTimer() {
     clearInterval(timerInterval);
     timerInterval = null;
   }
+  releaseWakeLock();
   timerRemaining = 0;
   timerIsPaused = false;
   const cd = document.getElementById('timerCountdown');
@@ -1188,6 +1220,7 @@ function onTimerComplete() {
     clearInterval(timerInterval);
     timerInterval = null;
   }
+  releaseWakeLock();
   updateTimerHeaderBtn(false);
   const cd = document.getElementById('timerCountdown');
   const card = document.querySelector('.timer-modal-card');
